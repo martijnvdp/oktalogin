@@ -1,15 +1,15 @@
 package oktalogin
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 
 	"golang.org/x/crypto/ssh/terminal"
+	"gopkg.in/h2non/gentleman.v2"
+	"gopkg.in/h2non/gentleman.v2/plugins/body"
+	"gopkg.in/h2non/gentleman.v2/plugins/bodytype"
 )
 
 type Credentials struct {
@@ -22,6 +22,14 @@ func (co Credentials) MarshalJSON() ([]byte, error) {
 	cn := credentials(co)
 	cn.Password = "[REDACTED]"
 	return json.Marshal((*credentials)(&cn))
+}
+
+type Result struct {
+	URL        string            `json:url`
+	Origin     string            `json:origin`
+	Headers    map[string]string `json:headers`
+	Status     string            `json:status`
+	stateToken string            `json:stateToken`
 }
 
 func getPassword() string {
@@ -41,32 +49,39 @@ func OktaLogin(profile_name string) {
 	fmt.Println("Login using username:", profile.Username, " and url ", profile.Oktaurl)
 	pass := getPassword()
 
-	data := Credentials{
-		Username: profile.Username,
-		Password: pass,
-	}
-
-	payloadBytes, err := json.Marshal(data)
+	reqBody := `{"username":"` + profile.Username + `","password":"` + pass + `"}`
+	cli := gentleman.New()
+	cli.Use(body.String(reqBody))
+	cli.Use(bodytype.Type("json"))
+	res, err := cli.Request().Method("POST").URL(profile.Oktaurl + "/api/v1/authn").Send()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Request error: %s\n", err)
+		return
 	}
-	body := bytes.NewReader(payloadBytes)
 
-	req, err := http.NewRequest("POST", profile.Oktaurl+"/api/v1/authn", body)
-	if err != nil {
-		fmt.Println(err)
+	if !res.Ok {
+		fmt.Printf("Invalid server response: %d\n", res.StatusCode)
+		return
 	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-
 	//debug
-	jsonString, _ := json.Marshal(resp)
-	ioutil.WriteFile("output.json", jsonString, os.ModePerm)
+	result := &Result{}
+	// Parse the body and map into a struct
+	res.JSON(result)
+	fmt.Printf("Body: %#v\n", result)
+
+	//	ioutil.WriteFile("big_marhsall.json", result, os.ModePerm)
+
+	if result.Status == "MFA_REQUIRED" {
+		fmt.Println("mfa required..")
+	}
+	fmt.Printf("Status: %d\n", res.StatusCode)
+	//fmt.Printf("Body: %s", res.String())
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	if err != nil {
 		// handle err
 	}
-	defer resp.Body.Close()
 
 }
