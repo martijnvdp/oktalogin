@@ -83,6 +83,7 @@ func AddProfiles() {
 		}
 		println("Add another profile(yes/no)")
 		fmt.Scan(&input)
+		fmt.Scanln()
 		if input != "yes" && input != "y" {
 			addanother = false
 		}
