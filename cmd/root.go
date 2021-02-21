@@ -20,6 +20,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/martijnxd/oktalogin/oktalogin"
+
 	"github.com/spf13/cobra"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -45,9 +47,10 @@ var rootCmd = &cobra.Command{
 	Long: `A cli app to login to okta and updte tokens for aws cli
 
 Oktalogin is a cli app to login to okta from the command line and get access tokens for aws to be used for other cli apps like the awscli`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		profile, _ := cmd.Flags().GetString("profile")
+		oktalogin.OktaLogin(profile)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -62,14 +65,8 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.oktalogin.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
+	rootCmd.Flags().StringP("profiles", "p", "", "Specify oktalogin profile to use for login")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
