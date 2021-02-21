@@ -48,7 +48,7 @@ var rootCmd = &cobra.Command{
 
 Oktalogin is a cli app to login to okta from the command line and get access tokens for aws to be used for other cli apps like the awscli`,
 	Run: func(cmd *cobra.Command, args []string) {
-		profile, _ := cmd.Flags().GetString("profile")
+		profile, _ := cmd.Flags().GetString("profiles")
 		oktalogin.OktaLogin(profile)
 	},
 }
