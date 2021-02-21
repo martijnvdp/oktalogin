@@ -24,39 +24,23 @@ func (co Credentials) MarshalJSON() ([]byte, error) {
 	return json.Marshal((*credentials)(&cn))
 }
 
-type Factors struct {
+type factors struct {
 	FactorType string `json:factorType`
 	Id         string `json:id`
 }
 
-type User struct {
-	ID      string    `json:id`
-	Factors []Factors `json:factors`
+type user struct {
+	Factors []factors `json:factors`
 }
-type Embedded struct {
-	User []User `json:user`
+type _embedded struct {
+	User []user `json:user`
 }
 
 type Result struct {
-	Status     string     `json:status`
-	StateToken string     `json:stateToken`
-	Embedded   []Embedded `json:_embedded`
-}
-
-type Result2 struct {
-	Status     string `json:status`
-	StateToken string `json:stateToken`
-	Embedded   []struct {
-		Embedded string `json:_embedded`
-		User     []struct {
-			User    string `json:user`
-			Id      string `json:id`
-			Factors []struct {
-				FactorType string `json:factorType`
-				Id         string `json:id`
-			}
-		}
-	}
+	Status     string      `json:status`
+	StateToken string      `json:stateToken`
+	FactorType string      `json:factorType`
+	_Embedded  []_embedded `json:_embedded`
 }
 
 func getPassword() string {
@@ -92,23 +76,28 @@ func OktaLogin(profile_name string) {
 	}
 	//debug
 	//res.SaveToFile("test.json")
-	result := &Result2{}
+	result := &Result{}
 	// Parse the body and map into a struct
+
 	res.JSON(result)
 	fmt.Printf("Body: %#v\n", result)
 
 	//	ioutil.WriteFile("big_marhsall.json", result, os.ModePerm)
 
-	for _, r := range result.Embedded {
-		for _, u := range r.User {
-
-			fmt.Println(u.Factors)
-		}
-	}
-
 	if result.Status == "MFA_REQUIRED" {
 		fmt.Println("mfa required..")
 	}
+
+	for _, r := range result._Embedded {
+		fmt.Println(r.User)
+		for _, u := range r.User {
+			fmt.Println(u.Factors)
+			for _, f := range u.Factors {
+				fmt.Println(f.FactorType)
+			}
+		}
+	}
+
 	fmt.Printf("Status: %d\n", res.StatusCode)
 	//fmt.Printf("Body: %s", res.String())
 	if err != nil {
